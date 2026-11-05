@@ -1,0 +1,14 @@
+schema = 1
+id = "workspaces"
+name = "Workspaces"
+version = "0.2.0"
+description = "Project workspaces with sidebar list, root-locked tabs, and configurable OMP / Codex / Claude / Fork actions."
+icon = "folder"
+host = "host.luau"
+window = "window.luau"
+styles = ["workspaces.css"]
+
+[[blocks]]
+id = "sidebar"
+title = "Workspaces"
+icon = "folder"

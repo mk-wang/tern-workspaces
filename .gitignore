@@ -1,0 +1,17 @@
+.DS_Store
+*.swp
+*~
+
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p8
+*.log
+*.jsonl
+*.db
+*.sqlite*
+__pycache__/
+*.py[cod]
+plugin-data/

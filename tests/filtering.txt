@@ -1,0 +1,85 @@
+# Run with `tern ctl --control DISPOSABLE_ENDPOINT --file tests/filtering.txt` on macOS.
+# Requires this plugin in an isolated TERN_CONFIG_DIR under /tmp/tern-filter-*. Never use a live window.
+# Local Carly Lua assertions do not invoke a model.
+# Native focus and text updates cross the daemon; settle before the next action.
+carly lua "local config = tern.getenv('TERN_CONFIG_DIR'); assert(config and config:sub(1,17) == '/tmp/tern-filter-', 'requires disposable filter config'); filter_root = '/tmp/tern-filter-fixtures'; local records = {{name='AlPhA Console',path=filter_root..'/one'},{name='Backend',path=filter_root..'/ALPHA-two'},{name='Regex [a].*',path=filter_root..'/three'},{name='项目😀',path=filter_root..'/four'}}; for _, w in records do tern.fs.mkdir(w.path) end; local file = config..'/plugin-data/workspaces/kv.json'; local data = tern.json.decode(tern.fs.read(file)); data.workspaces = records; tern.fs.write(file,tern.json.encode(data)); for _, pane in cx.session:panes() do if pane.block == 'workspaces.sidebar' then filter_pane = pane.pane end end; assert(filter_pane, 'sidebar must exist'); cx.session:event(filter_pane,{ev='action',act='refresh'}); function check_filter(paths) local sf = cx.session:surface(filter_pane); local found = {}; for _, node in sf.main.c do if node.p and node.p.role == 'workspaces-project' then table.insert(found,node.id) end end; assert(#found == #paths, 'wrong filtered project count'); for _, suffix in paths do assert(table.find(found,'main.workspace:'..filter_root..'/'..suffix),'missing project '..suffix) end; return true end; return true"
+carly ok
+carly close
+click "[data-role='workspaces-filter']"
+wait 250
+type "aLpHa"
+wait 250
+carly lua "return check_filter({'one','ALPHA-two'})"
+carly ok
+carly close
+click "[data-role='workspaces-filter']"
+wait 250
+key Meta+a
+wait 250
+type "cOnSoLe"
+wait 250
+carly lua "return check_filter({'one'})"
+carly ok
+carly close
+click "[data-role='workspaces-project-name']"
+wait 250
+carly lua "filter_session = cx.sessions:current().id; filter_tabs = cx.sessions:current().tabs; assert(cx.session:pane(cx.session:focused()).block ~= 'workspaces.sidebar', 'navigation must return focus to content'); return true"
+carly ok
+carly close
+click "[data-role='workspaces-project-name']"
+wait 250
+carly lua "assert(cx.sessions:current().id == filter_session and cx.sessions:current().tabs == filter_tabs, 'filtered navigation duplicated session or tabs'); return check_filter({'one'})"
+carly ok
+carly close
+click "[data-role='workspaces-filter']"
+wait 250
+key Meta+a
+wait 250
+type "/ALPHA-TWO"
+wait 250
+carly lua "return check_filter({'ALPHA-two'})"
+carly ok
+carly close
+click "[data-role='workspaces-filter']"
+wait 250
+key Meta+a
+wait 250
+type "[a].*"
+wait 250
+carly lua "return check_filter({'three'})"
+carly ok
+carly close
+click "[data-role='workspaces-filter']"
+wait 250
+key Meta+a
+wait 250
+type "not-present"
+wait 250
+carly lua "return check_filter({})"
+carly ok
+carly close
+click "[data-role='workspaces-filter']"
+wait 250
+key Meta+a
+wait 250
+type "项目😀"
+wait 250
+carly lua "return check_filter({'four'})"
+carly ok
+carly close
+click "[data-role='workspaces-filter']"
+wait 250
+key Backspace
+wait 250
+carly lua "return check_filter({'four'})"
+carly ok
+carly close
+click "[data-role='workspaces-filter']"
+wait 250
+key Meta+a
+wait 250
+key Backspace
+wait 250
+carly lua "return check_filter({'one','ALPHA-two','three','four'})"
+carly ok
+carly close

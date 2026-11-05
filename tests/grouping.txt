@@ -1,0 +1,48 @@
+# Run with `tern ctl --control DISPOSABLE_ENDPOINT --file tests/grouping.txt`.
+# Requires a fresh disposable Tern config with this plugin loaded. Never use a live user window.
+# carly lua runs local assertions only; it does not call a model.
+run "mkdir -p /tmp/tern-workspaces-group-check/a /tmp/tern-workspaces-group-check/b; cd /tmp/tern-workspaces-group-check/a"
+plugins run plugin.workspaces.add_workspace
+run "cd /tmp/tern-workspaces-group-check/b"
+plugins run plugin.workspaces.add_workspace
+open-url "workspaces://open?path=/tmp/tern-workspaces-group-check/a"
+run "cd /tmp"
+key Meta+t
+carly lua "a = cx.sessions:current().id; a_tabs = {}; for _, tab in cx.session:tabs() do if tab.session == a then table.insert(a_tabs, tab.id) end end; assert(#a_tabs == 2, 'A must have two tabs'); assert(cx.session:pane(cx.session:focused()).cwd == '/tmp/tern-workspaces-group-check/a', 'new tab must use workspace root'); return true"
+carly ok
+carly close
+open-url "workspaces://open?path=/tmp/tern-workspaces-group-check/b"
+carly lua "b = cx.sessions:current().id; assert(b ~= a, 'projects must use different sessions'); assert(cx.sessions:current().tabs == 1, 'B must not inherit A tabs'); return true"
+carly ok
+carly close
+session rename "group-check-renamed"
+open-url "workspaces://open?path=/tmp/tern-workspaces-group-check/a"
+carly lua "assert(cx.sessions:current().id == a, 'A must reuse its session'); local tabs = {}; for _, tab in cx.session:tabs() do if tab.session == a then table.insert(tabs, tab.id) end end; assert(#tabs == #a_tabs, 'A tab count changed'); for i, id in a_tabs do assert(tabs[i] == id, 'A tab identity changed') end; assert(cx.session:pane(cx.session:focused()).block ~= 'workspaces.sidebar', 'sidebar must not keep focus'); return true"
+carly ok
+carly close
+run "tern plugin reload workspaces"
+open-url "workspaces://open?path=/tmp/tern-workspaces-group-check/b"
+carly lua "assert(cx.sessions:current().id == b, 'rename or reload duplicated B'); assert(cx.sessions:current().tabs == 1, 'B tab count changed'); return true"
+carly ok
+carly close
+# The preference is enabled, but a removed sidebar is not actually visible.
+# A missing sidebar must exist before the show action returns, without a timer wake.
+carly lua "content = cx.session:focused(); local tab = cx.session:pane(content).tab; for _, pane in cx.session:panes() do if pane.tab == tab and pane.block == 'workspaces.sidebar' then cx.layout:close(pane.pane) end end; cx:action('plugin.workspaces.sidebar'); local count = 0; for _, pane in cx.session:panes() do if pane.tab == tab and pane.block == 'workspaces.sidebar' then count += 1 end end; assert(count == 1, 'sidebar must mount during the show action, not after a delayed timer'); assert(cx.session:focused() == content, 'showing the sidebar must preserve content focus'); return true"
+carly ok
+carly close
+carly lua "local tab = cx.session:pane(content).tab; local count = 0; for _, pane in cx.session:panes() do if pane.tab == tab and pane.block == 'workspaces.sidebar' then count += 1 end end; assert(count == 1, 'one toggle must show a missing sidebar, even with the saved flag enabled'); assert(cx.session:focused() == content, 'showing the sidebar must preserve content focus'); assert(cx.sessions:current().id == b and cx.sessions:current().tabs == 1, 'showing the sidebar must preserve the content session and tabs'); return true"
+carly ok
+carly close
+# Width and visibility belong to the shared sidebar, not individual tabs.
+carly lua "function rail(tab) local layout = cx.session:layout(tab); if not layout then return nil end; local function walk(node) if node.pane then local p = cx.session:pane(node.pane); if p and p.block == 'workspaces.sidebar' then return node.pane end; return nil end; return (node[1] and walk(node[1])) or (node[2] and walk(node[2])) end; return walk(layout.root) end; local tab = cx.session:pane(cx.session:focused()).tab; local pane = rail(tab); assert(pane, 'current tab must have a sidebar'); assert(cx.layout:resize(pane, 'right', 8), 'sidebar divider must resize'); wanted_fraction = cx.session:layout(tab).root.ratio; return true"
+carly ok
+carly close
+key Meta+t
+carly lua "local tab = cx.session:pane(cx.session:focused()).tab; assert(rail(tab), 'new tab must show the shared sidebar'); assert(math.abs(cx.session:layout(tab).root.ratio - wanted_fraction) < 0.01, 'new tab must inherit the dragged width within cell quantization'); cx:action('plugin.workspaces.sidebar'); for _, t in cx.session:tabs() do assert(not rail(t.id), 'hide must remove sidebars from every session'); end; return true"
+carly ok
+carly close
+open-url "workspaces://open?path=/tmp/tern-workspaces-group-check/a"
+key Meta+t
+carly lua "local tab = cx.session:pane(cx.session:focused()).tab; assert(not rail(tab), 'hidden sidebar must stay hidden in a new tab and another session'); local content = cx.session:focused(); cx:action('plugin.workspaces.sidebar'); assert(rail(tab), 'show must restore the sidebar during the action'); assert(cx.session:focused() == content, 'show must not steal content focus'); assert(math.abs(cx.session:layout(tab).root.ratio - wanted_fraction) < 0.01, 'show must retain the dragged width within cell quantization'); return true"
+carly ok
+carly close
