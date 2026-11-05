@@ -23,6 +23,13 @@
 	margin-bottom: 2px;
 }
 
+[data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-section"] > .sf-section-body {
+	margin-left: 0;
+	padding-left: 0;
+	box-shadow: none;
+	gap: 10px;
+}
+
 [data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-section-heading"] {
 	align-items: center;
 	gap: 8px;
@@ -67,6 +74,7 @@
 	text-overflow: ellipsis;
 }
 
+[data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-pin"],
 [data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-remove"] {
 	flex-shrink: 0;
 	width: 24px;
@@ -137,6 +145,7 @@
 }
 
 [data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-chat"]:hover,
+[data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-pin"]:hover,
 [data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-remove"]:hover,
 [data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-actions"] .sf-badge:hover {
 	background: var(--surface-hover, rgb(from var(--fg) r g b / 6%));

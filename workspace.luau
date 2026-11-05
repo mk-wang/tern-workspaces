@@ -34,6 +34,7 @@ export type WorkspaceRecord = {
 	path: string,
 	icon: string?,
 	folders: { string }?,
+	pinned: boolean?,
 }
 
 export type ActionConfig = {
@@ -356,6 +357,7 @@ function workspace.get_user_workspaces(): { WorkspaceRecord }
 					path = trim(raw.path),
 					icon = raw.icon or "folder",
 					folders = raw.folders,
+					pinned = if raw.pinned == true then true else nil,
 				})
 			end
 		end
@@ -437,6 +439,21 @@ function workspace.add_workspace(path: string, custom_name: string?): WorkspaceR
 	table.insert(list, rec)
 	workspace.save_user_workspaces(list)
 	return rec
+end
+
+function workspace.set_pinned(path: string, pinned: boolean): boolean
+	local resolved = workspace.resolve("/", path)
+	local list = workspace.get_user_workspaces()
+	for _, entry in list do
+		if entry.path == resolved then
+			if (entry.pinned == true) ~= pinned then
+				entry.pinned = if pinned then true else nil
+				workspace.save_user_workspaces(list)
+			end
+			return true
+		end
+	end
+	return false
 end
 
 function workspace.remove_workspace(path_or_name: string): boolean

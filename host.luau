@@ -52,18 +52,18 @@ local function append_omp_status(nodes: { Node }, counts: { [string]: number }?,
 end
 
 local function append_section(nodes: { Node }, projects: { Node }, label: string, key: string)
-	if #projects == 0 then
-		return
-	end
+	if #projects == 0 and key ~= "stick" then return end
 	local count = ui.badge(tostring(#projects), "default")
 	count.p = count.p or {}
 	count.p.role = "workspaces-section-count"
-	table.insert(nodes, ui.node("row", { key = "section:" .. key, role = "workspaces-section-heading" }, {
+	local children = { ui.node("row", { key = "head", role = "workspaces-section-heading" }, {
 		ui.text({ ui.span(label, "default") }), count,
-	}))
-	for _, project in projects do
-		table.insert(nodes, project)
-	end
+	}) }
+	for _, project in projects do table.insert(children, project) end
+	table.insert(nodes, ui.node("section", {
+		key = "section:" .. key, role = "workspaces-section",
+		head = "main.section:" .. key .. ".head", collapsible = true, collapsed = false,
+	}, children))
 end
 
 local function url_encode(str: string): string
@@ -214,6 +214,7 @@ tern.block.define("sidebar", {
 		end
 		local ws_rows: { Node } = {}
 		local inactive_rows: { Node } = {}
+		local pinned_rows: { Node } = {}
 
 		for _, ws in workspaces_list do
 			if query ~= "" and not string.find(string.lower(ws.name), query, 1, true)
@@ -256,6 +257,12 @@ tern.block.define("sidebar", {
 
 			local title_nodes = { title_node }
 			append_omp_status(title_nodes, state.omp_status[ws.path], "omp:" .. ws.path)
+			local pin_label = if ws.pinned then "Unpin workspace" else "Pin workspace"
+			table.insert(title_nodes, ui.node("button", {
+				key = "pin:" .. ws.path, role = "workspaces-pin", icon = "pin", size = "sm",
+				tone = if ws.pinned then "accent" else "muted", title = pin_label, aria = pin_label,
+				actions = { click = (if ws.pinned then "unpin:" else "pin:") .. ws.path },
+			}))
 			table.insert(title_nodes, del_badge)
 			local title_row = ui.node("row", { role = "workspaces-title" }, title_nodes)
 			local project_nodes = {
@@ -299,7 +306,12 @@ tern.block.define("sidebar", {
 				table.insert(project_nodes, ui.node("col", { role = "workspaces-chats" }, chat_rows))
 			end
 			local project = ui.node("col", { key = "workspace:" .. ws.path, role = "workspaces-project" }, project_nodes)
-			table.insert(if has_status then ws_rows else inactive_rows, project)
+			if ws.pinned then table.insert(pinned_rows, project) end
+			if has_status then
+				table.insert(ws_rows, project)
+			elseif not ws.pinned then
+				table.insert(inactive_rows, project)
+			end
 		end
 
 		local heading = ui.text({ ui.span("Workspaces", "strong") })
@@ -314,11 +326,12 @@ tern.block.define("sidebar", {
 				anchor = if state.anchor then utf16_offset(state.query, state.anchor) else nil,
 			}),
 		}
+		append_section(content_nodes, pinned_rows, "Stick", "stick")
 		append_section(content_nodes, ws_rows, "With Status", "status")
 		append_section(content_nodes, inactive_rows, "No Status", "none")
 		if #workspaces_list == 0 then
 			table.insert(content_nodes, ui.text({ ui.span("No workspaces added yet.", "default") }))
-		elseif #ws_rows == 0 and #inactive_rows == 0 then
+		elseif #pinned_rows == 0 and #ws_rows == 0 and #inactive_rows == 0 then
 			table.insert(content_nodes, ui.text({ ui.span("No matching workspaces.", "default") }))
 		end
 
@@ -463,6 +476,12 @@ tern.block.define("sidebar", {
 					cx:open("workspaces://resume?root=" .. url_encode(root) .. "&cwd=" .. url_encode(s.cwd) .. "&cmd=" .. url_encode(s.command)
 						.. "&files=" .. url_encode(tern.json.encode(tern.json.array(s.session_files))))
 				end
+			elseif string.sub(act, 1, 4) == "pin:" then
+				workspace.set_pinned(string.sub(act, 5), true)
+				cx:render()
+			elseif string.sub(act, 1, 6) == "unpin:" then
+				workspace.set_pinned(string.sub(act, 7), false)
+				cx:render()
 			elseif string.sub(act, 1, 7) == "remove:" then
 				local path = string.sub(act, 8)
 				workspace.remove_workspace(path)

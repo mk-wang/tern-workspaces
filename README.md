@@ -36,7 +36,10 @@ New installations use each agent's normal approval and sandbox settings. Existin
   - Tern owns scroll state and does not expose offsets. Reloading the plugin or closing its pane resets scroll position.
   - The shared-pane flow is verified in one local window. Concurrent windows and remote hosts have not been verified.
   - In an empty session, opening the sidebar first creates a terminal tab.
-  - The sidebar groups projects into **With Status** and **No Status** sections. Each project keeps its actions and recent chats together.
+  - The sidebar groups projects into **Stick**, **With Status**, and **No Status** sections. Each project keeps its actions and recent chats together.
+  - Click the pin icon beside a workspace name to pin or unpin it. Pins are saved across plugin reloads.
+  - Pinned projects stay in the **Stick** section regardless of activity. Active pinned projects also appear in **With Status**.
+  - Each section starts expanded. Click its heading to collapse or expand it.
   - The top input filters projects by name or stored path using case-insensitive literal substrings. Either field can match.
   - Clear the input or press Escape to show all projects. Filtering does not change saved projects, sessions, or tabs.
 - **Live OMP Status**:
@@ -47,7 +50,7 @@ New installations use each agent's normal approval and sandbox settings. Existin
   - A project can show several indicators. Counts appear when more than one agent shares the same status.
   - Idle agents without an unread alert have no indicator. Status is live and is not saved in workspace data.
   - Status refreshes on agent events and reconciles every second.
-  - Projects with a status indicator in their header or in a recent chat appear first. Chats with status indicators also appear first within each project. Both groups keep their original order.
+  - Projects with a status indicator in their header or in a recent chat appear in **With Status** before **No Status**. Chats with status indicators appear first within each project. Each group keeps its original order.
 - ⚙️ **100% Configurable Data-Driven Actions**:
   - No hardcoded applications! Launch actions are defined in `commands.json`.
   - Supports two action types:
