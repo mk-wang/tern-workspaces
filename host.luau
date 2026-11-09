@@ -215,6 +215,7 @@ tern.block.define("sidebar", {
 		local ws_rows: { Node } = {}
 		local inactive_rows: { Node } = {}
 		local pinned_rows: { Node } = {}
+		local inactive_pinned_rows: { Node } = {}
 
 		for _, ws in workspaces_list do
 			if query ~= "" and not string.find(string.lower(ws.name), query, 1, true)
@@ -306,12 +307,17 @@ tern.block.define("sidebar", {
 				table.insert(project_nodes, ui.node("col", { role = "workspaces-chats" }, chat_rows))
 			end
 			local project = ui.node("col", { key = "workspace:" .. ws.path, role = "workspaces-project" }, project_nodes)
-			if ws.pinned then table.insert(pinned_rows, project) end
+			if ws.pinned then
+				table.insert(if has_status then pinned_rows else inactive_pinned_rows, project)
+			end
 			if has_status then
 				table.insert(ws_rows, project)
 			elseif not ws.pinned then
 				table.insert(inactive_rows, project)
 			end
+		end
+		for _, project in inactive_pinned_rows do
+			table.insert(pinned_rows, project)
 		end
 
 		local heading = ui.text({ ui.span("Workspaces", "strong") })

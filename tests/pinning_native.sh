@@ -35,7 +35,7 @@ exec sleep 600
 EOS
 chmod +x "$WORK/fake/shell"
 
-# Saved order is long, idle, active: a pin must keep that relative order, not click order.
+# Saved order is long, idle, active: pins keep relative order within each status group.
 cat > "$WORK/config/plugin-data/workspaces/kv.json" <<EOF
 {"workspaces":[{"icon":"folder","name":"$LONG","path":"$WORK/proj-long"},{"icon":"folder","name":"alpha-idle","path":"$WORK/proj-idle"},{"icon":"folder","name":"bravo-active","path":"$WORK/proj-active"}],"workspace_sessions:2":{}}
 EOF
@@ -138,7 +138,7 @@ wait_for() {
   return 1
 }
 
-# The one shape assertion: section headers+counts, their rows in saved order, working markers.
+# The one shape assertion: section headers+counts, status-first stable order, working markers.
 expect_outline() {
   local want out
   want="$(cat)"
@@ -176,7 +176,9 @@ click_pin() {
 }
 
 omp_status() {
-  lua "local s={workspaces={['$1']={working=1}},sessions={}}; for _,p in ipairs(cx.session:panes()) do if p.block=='workspaces.sidebar' then cx.session:event(p.pane,{ev='action',act='omp_status',text=tern.json.encode(s)}) end end"
+  local project statuses=""
+  for project in "$@"; do statuses+="['$project']={working=1},"; done
+  lua "local s={workspaces={$statuses},sessions={}}; for _,p in ipairs(cx.session:panes()) do if p.block=='workspaces.sidebar' then cx.session:event(p.pane,{ev='action',act='omp_status',text=tern.json.encode(s)}) end end"
 }
 
 # The fixture must never reach a real user window, HOME or daemon.
@@ -259,18 +261,50 @@ $LONG
 EOF
 pass "With Status collapses and reopens"
 
-# Pin the active project: Stick keeps saved order (idle before active), indicator retained.
+# Pin the active project: status comes before idle pins, indicator retained.
 click_pin "$WORK/proj-active"
 expect_outline <<EOF
 Stick 2
-alpha-idle
 bravo-active (working)
+alpha-idle
 With Status 1
 bravo-active (working)
 No Status 1
 $LONG
 EOF
 pass "pinned active project appears in Stick and With Status with both OMP indicators"
+
+# Status updates reorder existing pins without another click or reload.
+omp_status "$WORK/proj-active" "$WORK/proj-idle"
+expect_outline <<EOF
+Stick 2
+alpha-idle (working)
+bravo-active (working)
+With Status 2
+alpha-idle (working)
+bravo-active (working)
+No Status 1
+$LONG
+EOF
+omp_status
+expect_outline <<EOF
+Stick 2
+alpha-idle
+bravo-active
+No Status 1
+$LONG
+EOF
+omp_status "$WORK/proj-active"
+expect_outline <<EOF
+Stick 2
+bravo-active (working)
+alpha-idle
+With Status 1
+bravo-active (working)
+No Status 1
+$LONG
+EOF
+pass "Stick dynamically prioritizes status and preserves saved order within each group"
 
 # The two copies have separate view state but one saved pin state.
 click_head 'Stick'
@@ -284,8 +318,8 @@ EOF
 click_head 'Stick'
 expect_outline <<EOF
 Stick 2
-alpha-idle
 bravo-active (working)
+alpha-idle
 With Status 1
 bravo-active (working)
 No Status 1
@@ -314,8 +348,8 @@ pass "unpinning the status copy removes Stick membership and retains the active 
 click_pin "$WORK/proj-active"
 expect_outline <<EOF
 Stick 2
-alpha-idle
 bravo-active (working)
+alpha-idle
 With Status 1
 bravo-active (working)
 No Status 1
