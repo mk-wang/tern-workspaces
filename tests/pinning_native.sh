@@ -450,13 +450,15 @@ alpha-idle
 EOF
 pass "filtering matches the pinned project and clearing restores every row"
 
-# workspace_check.luau in a disposable plugin harness. Tern's require resolves only
+# Workspace and sidebar checks in a disposable plugin harness. Tern's require resolves only
 # real children of the package (absolute paths and symlinks are rejected), and /tmp is
 # another device, so hardlink the real files from a temp dir beside the repo: same
 # inode, no duplicated source, removed on exit.
 CHECK=$(mktemp -d "$(dirname "$REPO")/.tern-pincheck.XXXXXX") || fail "no linkable temp dir"
 ln "$REPO/workspace.luau" "$CHECK/workspace.luau" || fail "workspace.luau is not hardlinkable"
 ln "$REPO/tests/workspace_check.luau" "$CHECK/workspace_check.luau" || fail "workspace_check.luau is not hardlinkable"
+ln "$REPO/sidebar.luau" "$CHECK/sidebar.luau" || fail "sidebar.luau is not hardlinkable"
+ln "$REPO/tests/sidebar_check.luau" "$CHECK/sidebar_check.luau" || fail "sidebar_check.luau is not hardlinkable"
 cat > "$CHECK/plugin.toml" <<'EOF'
 schema = 1
 id = "pincheck"
@@ -469,6 +471,9 @@ local workspace = require("./workspace")
 local check = require("./workspace_check")
 local ok, err = pcall(check, workspace)
 tern.fs.write("$E/workspace-check.txt", if ok then "PASS" else "FAIL: " .. tostring(err))
+local sidebar_check = require("./sidebar_check")
+local sidebar_ok, sidebar_err = pcall(sidebar_check, require("./sidebar"))
+tern.fs.write("$E/sidebar-check.txt", if sidebar_ok then "PASS" else "FAIL: " .. tostring(sidebar_err))
 EOF
 printf '%s\n' "$CHECK" > "$WORK/config/plugins/pincheck.path"
 "$TERN" plugin reload pincheck --window "$WORK/win.sock" --json > "$E/check-reload.json" 2>&1 \
@@ -476,6 +481,9 @@ printf '%s\n' "$CHECK" > "$WORK/config/plugins/pincheck.path"
 [ -f "$E/workspace-check.txt" ] || fail "workspace_check produced no result"
 grep -qx 'PASS' "$E/workspace-check.txt" || { cat "$E/workspace-check.txt"; fail "workspace_check"; }
 pass "workspace_check.luau passes in a disposable plugin harness"
+[ -f "$E/sidebar-check.txt" ] || fail "sidebar_check produced no result"
+grep -qx 'PASS' "$E/sidebar-check.txt" || { cat "$E/sidebar-check.txt"; fail "sidebar_check"; }
+pass "sidebar_check.luau passes in a disposable plugin harness"
 
 # Evidence: one pinned row in Stick, every section expanded.
 ctl shot pinning-final >/dev/null 2>&1 || fail "final shot failed"

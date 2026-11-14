@@ -475,6 +475,8 @@ tern.command({
 	end,
 })
 
+tern.override("close_pane", sidebar.close)
+
 -- Main Picker: Searchable Workspaces modal
 tern.command({
 	id = "picker",

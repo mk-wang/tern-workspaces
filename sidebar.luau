@@ -130,6 +130,11 @@ end
 
 local function reconcile(cx: WindowCx): number?
 	local enabled, fraction = preferences(cx)
+	if pane_id and not cx.session:pane(pane_id) then
+		-- Native header closes bypass command overrides; do not resurrect the sidebar.
+		enabled = false
+		tern.kv.set("sidebar_enabled", false)
+	end
 	adopt(cx)
 	local current = if pane_id then geometry(cx, pane_id) else nil
 	if current and previous and current.tab == previous.tab
@@ -192,15 +197,20 @@ function sidebar.panes(): { number }
 end
 
 function sidebar.toggle(cx: WindowCx)
-	adopt(cx)
-	local focused = cx.session:focused()
-	local tab = if focused then cx.session:tab_of(focused) else nil
-	local info = if pane_id then cx.session:pane(pane_id) else nil
-	local present = info ~= nil and info.tab ~= nil and info.tab == tab and not info.parked
-	preferences(cx)
-	tern.kv.set("sidebar_enabled", not present)
-	if not present and not tab then cx.layout:new_tab() end
+	local enabled = preferences(cx)
+	tern.kv.set("sidebar_enabled", not enabled)
+	if not enabled and not cx.session:focused() then cx.layout:new_tab() end
 	reconcile(cx)
+end
+
+function sidebar.close(cx: WindowCx): boolean
+	local focused = cx.session:focused()
+	local info = if focused then cx.session:pane(focused) else nil
+	if not info or info.block ~= sidebar.kind then return false end
+	-- Keep the shared native surface alive, including its scroll position.
+	tern.kv.set("sidebar_enabled", false)
+	reconcile(cx)
+	return true
 end
 
 return sidebar

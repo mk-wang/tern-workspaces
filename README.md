@@ -22,7 +22,7 @@ New installations use each agent's normal approval and sandbox settings. Existin
 
 - 📑 **Persistent Workspaces Sidebar List**:
   - Press **`⌘ ⌥ B`** (or click the workspace name in the status bar) to toggle the left sidebar.
-  - The shortcut checks the current tab. If its sidebar is missing, the first press restores it, regardless of the saved visibility flag.
+  - The shortcut toggles one global visibility preference. Existing and new tabs follow the same open or closed state.
   - Opening mounts the sidebar during the action. It does not wait for a window timer or history discovery.
   - The plugin stores workspaces in its own data directory. No other project plugin is required.
   - Each project opens its own Tern session. Selecting a project restores that session and its existing tabs.
@@ -30,10 +30,10 @@ New installations use each agent's normal approval and sandbox settings. Existin
   - Session bindings persist across plugin reloads and are scoped to the Tern window. Renaming a session preserves its binding.
   - Existing tabs stay in their original sessions. Adding or opening a project does not move those tabs.
   - Tern has no window-level plugin sidebar. One native sidebar pane follows the active tab across sessions without moving content panes.
-  - Switching tabs or sessions preserves terminal focus and the sidebar's scroll position. Hiding parks the pane instead of closing it.
+  - Switching tabs or sessions preserves terminal focus and the sidebar's scroll position. The toggle and keyboard **Close block** action park the pane.
   - Sidebar visibility and width preferences are shared across tabs, sessions, and windows. Dragging the divider updates the saved width.
   - Width follows a viewport fraction rather than a fixed pixel size. Native terminal cells limit resize precision.
-  - Tern owns scroll state and does not expose offsets. Reloading the plugin or closing its pane resets scroll position.
+  - Tern owns scroll state and does not expose offsets. Plugin reloads and the native pane-header close button reset scroll position.
   - The shared-pane flow is verified in one local window. Concurrent windows and remote hosts have not been verified.
   - In an empty session, opening the sidebar first creates a terminal tab.
   - The sidebar groups projects into **Stick**, **With Status**, and **No Status** sections. Each project keeps its actions and recent chats together.
