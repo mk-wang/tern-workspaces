@@ -38,6 +38,7 @@ New installations use each agent's normal approval and sandbox settings. Existin
   - In an empty session, opening the sidebar first creates a terminal tab.
   - The sidebar groups projects into **Stick**, **With Status**, and **No Status** sections. Each project keeps its actions and recent chats together.
   - Click the pin icon beside a workspace name to pin or unpin it. Pins are saved across plugin reloads.
+  - Click the chevron beside a workspace name to collapse or expand its action badges and recent chats. A collapsed project keeps its status indicators and pin. Cards start expanded.
   - Pinned projects stay in the **Stick** section regardless of activity. Active pinned projects also appear in **With Status**.
   - **Stick** dynamically places projects with status indicators first. Each status group keeps its saved order.
   - Each section starts expanded. Click its heading to collapse or expand it.

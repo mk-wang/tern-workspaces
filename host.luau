@@ -110,6 +110,8 @@ type SidebarState = {
 	cursor: number,
 	anchor: number?,
 	filter_focused: boolean,
+	-- Workspace card collapse, keyed by path. UI-only: every card starts expanded.
+	collapsed: { [string]: boolean },
 	omp_status: { [string]: { [string]: number } },
 	omp_session_status: { [string]: { [string]: number } },
 }
@@ -166,6 +168,7 @@ tern.block.define("sidebar", {
 			query = "",
 			cursor = 1,
 			filter_focused = false,
+			collapsed = {},
 			omp_status = {},
 			omp_session_status = {},
 		}
@@ -223,7 +226,16 @@ tern.block.define("sidebar", {
 				continue
 			end
 			local has_status = has_omp_status(state.omp_status[ws.path])
-			-- Title element: Folder icon + Name
+			local collapsed = state.collapsed[ws.path] == true
+			-- Title element: disclosure arrow + Folder icon + Name
+			local toggle = ui.badge(if collapsed then "▸" else "▾", "muted")
+			local tp_toggle: { [string]: any } = toggle.p or {}
+			tp_toggle.actions = { click = "collapse:" .. ws.path }
+			tp_toggle.key = "collapse:" .. ws.path
+			tp_toggle.role = "workspaces-collapse"
+			tp_toggle.title = if collapsed then "Expand workspace" else "Collapse workspace"
+			tp_toggle.aria = if collapsed then "Expand workspace" else "Collapse workspace"
+			toggle.p = tp_toggle
 			local icon_span = ui.span("📁 ", "accent")
 			local name_span = ui.span(ws.name, "strong")
 			local title_node = ui.text({ icon_span, name_span })
@@ -256,7 +268,7 @@ tern.block.define("sidebar", {
 			dp.aria = "Remove workspace"
 			del_badge.p = dp
 
-			local title_nodes = { title_node }
+			local title_nodes = { toggle, title_node }
 			append_omp_status(title_nodes, state.omp_status[ws.path], "omp:" .. ws.path)
 			local pin_label = if ws.pinned then "Unpin workspace" else "Pin workspace"
 			table.insert(title_nodes, ui.node("button", {
@@ -266,10 +278,10 @@ tern.block.define("sidebar", {
 			}))
 			table.insert(title_nodes, del_badge)
 			local title_row = ui.node("row", { role = "workspaces-title" }, title_nodes)
-			local project_nodes = {
-				title_row,
-				ui.node("row", { role = "workspaces-actions" }, row_nodes),
-			}
+			local project_nodes = { title_row }
+			if not collapsed then
+				table.insert(project_nodes, ui.node("row", { role = "workspaces-actions" }, row_nodes))
+			end
 			local chat_rows: { Node } = {}
 
 			-- Keep original session indices for resume actions after view-only ordering.
@@ -279,25 +291,28 @@ tern.block.define("sidebar", {
 				if table.find(sess.workspace_paths, ws.path) == nil then
 					continue
 				end
-				local chat_title = ui.text({ ui.span(sess.title, "default") })
-				chat_title.p = chat_title.p or {}
-				chat_title.p.role = "workspaces-chat-title"
-				local agent_tag = ui.text({ ui.span(sess.agent, "default") })
-				agent_tag.p = agent_tag.p or {}
-				agent_tag.p.role = "workspaces-agent"
-				local indicators: { Node } = {}
+				-- Status still drives section placement when the card is collapsed.
 				local counts = counts_by_session[sess_idx]
-				append_omp_status(indicators, counts, "omp-chat:" .. ws.path .. ":" .. tostring(sess_idx))
 				has_status = has_status or has_omp_status(counts)
-				table.insert(chat_rows, ui.node("row", {
-					key = "chat-row:" .. ws.path .. ":" .. tostring(sess_idx),
-					role = "workspaces-chat", align = "start",
-					title = sess.agent .. ": " .. sess.title,
-					actions = { click = "resume:" .. tostring(sess_idx) .. ":" .. ws.path },
-				}, {
-					agent_tag, chat_title,
-					ui.node("col", { role = "workspaces-chat-status" }, indicators),
-				}))
+				if not collapsed then
+					local chat_title = ui.text({ ui.span(sess.title, "default") })
+					chat_title.p = chat_title.p or {}
+					chat_title.p.role = "workspaces-chat-title"
+					local agent_tag = ui.text({ ui.span(sess.agent, "default") })
+					agent_tag.p = agent_tag.p or {}
+					agent_tag.p.role = "workspaces-agent"
+					local indicators: { Node } = {}
+					append_omp_status(indicators, counts, "omp-chat:" .. ws.path .. ":" .. tostring(sess_idx))
+					table.insert(chat_rows, ui.node("row", {
+						key = "chat-row:" .. ws.path .. ":" .. tostring(sess_idx),
+						role = "workspaces-chat", align = "start",
+						title = sess.agent .. ": " .. sess.title,
+						actions = { click = "resume:" .. tostring(sess_idx) .. ":" .. ws.path },
+					}, {
+						agent_tag, chat_title,
+						ui.node("col", { role = "workspaces-chat-status" }, indicators),
+					}))
+				end
 				count += 1
 				if count == 2 then
 					break
@@ -482,6 +497,10 @@ tern.block.define("sidebar", {
 					cx:open("workspaces://resume?root=" .. url_encode(root) .. "&cwd=" .. url_encode(s.cwd) .. "&cmd=" .. url_encode(s.command)
 						.. "&files=" .. url_encode(tern.json.encode(tern.json.array(s.session_files))))
 				end
+			elseif string.sub(act, 1, 9) == "collapse:" then
+				local path = string.sub(act, 10)
+				state.collapsed[path] = not (state.collapsed[path] == true)
+				cx:render()
 			elseif string.sub(act, 1, 4) == "pin:" then
 				workspace.set_pinned(string.sub(act, 5), true)
 				cx:render()

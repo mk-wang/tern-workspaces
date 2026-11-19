@@ -75,7 +75,8 @@
 }
 
 [data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-pin"],
-[data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-remove"] {
+[data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-remove"],
+[data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-collapse"] {
 	flex-shrink: 0;
 	width: 24px;
 	min-height: 24px;
@@ -86,6 +87,11 @@
 	border-radius: 4px;
 	font-size: 1.15em;
 	line-height: 1;
+}
+
+[data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-collapse"] {
+	width: 18px;
+	cursor: pointer;
 }
 
 [data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-actions"] {
@@ -147,6 +153,7 @@
 [data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-chat"]:hover,
 [data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-pin"]:hover,
 [data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-remove"]:hover,
+[data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-collapse"]:hover,
 [data-surface="plugin.workspaces.sidebar"] [data-role="workspaces-actions"] .sf-badge:hover {
 	background: var(--surface-hover, rgb(from var(--fg) r g b / 6%));
 }
